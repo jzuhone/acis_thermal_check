@@ -1,6 +1,6 @@
 import os
 import Ska.DBI
-from Chandra.Time import DateTime
+from cxotime import CxoTime
 from pprint import pformat
 import Chandra.cmd_states as cmd_states
 import logging
@@ -60,8 +60,8 @@ class StateBuilder(object):
         datestop : string
             The end date to grab states before.
         """
-        datestart = DateTime(datestart).date
-        datestop = DateTime(datestop).date
+        datestart = CxoTime(datestart).date
+        datestop = CxoTime(datestop).date
         self.logger.info('Getting commanded states between %s - %s' %
                          (datestart, datestop))
 
@@ -78,10 +78,10 @@ class StateBuilder(object):
         # to date and back to secs.  (The reference tstop could be just over the
         # 0.001 precision of date and thus cause an out-of-bounds error when
         # interpolating state values).
-        states[0].tstart = DateTime(datestart).secs - 0.01
-        states[0].datestart = DateTime(states[0].tstart).date
-        states[-1].tstop = DateTime(datestop).secs + 0.01
-        states[-1].datestop = DateTime(states[-1].tstop).date
+        states[0].tstart = CxoTime(datestart).secs - 0.01
+        states[0].datestart = CxoTime(states[0].tstart).date
+        states[-1].tstop = CxoTime(datestop).secs + 0.01
+        states[-1].datestop = CxoTime(states[-1].tstop).date
 
         return states
 
@@ -152,7 +152,7 @@ class SQLStateBuilder(StateBuilder):
         state0 = cmd_states.get_state0(tbegin, self.db, datepar='datestart',
                                        date_margin=None)
 
-        self.logger.debug('state0 at %s is\n%s' % (DateTime(state0['tstart']).date,
+        self.logger.debug('state0 at %s is\n%s' % (CxoTime(state0['tstart']).date,
                                                    pformat(state0)))
 
         # Get commands after end of state0 through first backstop command time
@@ -184,7 +184,7 @@ class SQLStateBuilder(StateBuilder):
         # continuity load. To check for this, we find the current time and see 
         # the load under review is still in the future. If it is, we then treat
         # this as an interrupt if requested, otherwise, we don't. 
-        current_time = DateTime().secs
+        current_time = CxoTime.now().secs
         interrupt = self.interrupt and self.bs_cmds[0]["time"] > current_time
 
         db_cmds = [x for x in db_cmds
@@ -420,7 +420,7 @@ class ACISStateBuilder(StateBuilder):
         states[-1].datestop = bs_cmds[-1]['date']
         states[-1].tstop = bs_cmds[-1]['time']
 
-        self.logger.debug('state0 at %s is\n%s' % (DateTime(state0['tstart']).date,
+        self.logger.debug('state0 at %s is\n%s' % (CxoTime(state0['tstart']).date,
                                                    pformat(state0)))
 
         return states, state0

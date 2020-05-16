@@ -12,7 +12,7 @@ import pickle
 import numpy as np
 import Ska.DBI
 import Ska.Numpy
-from Chandra.Time import DateTime, date2secs, secs2date
+from cxotime import CxoTime
 import matplotlib.pyplot as plt
 from Ska.Matplotlib import cxctime2plotdate, \
     pointpair, plot_cxctime
@@ -160,9 +160,9 @@ class ACISThermalCheck(object):
 
         # Store off the start date, and, if you have it, the
         # stop date in proc
-        proc["datestart"] = DateTime(tstart).date
+        proc["datestart"] = CxoTime(tstart).date
         if tstop is not None:
-            proc["datestop"] = DateTime(tstop).date
+            proc["datestop"] = CxoTime(tstop).date
 
         # Get the telemetry values which will be used
         # for prediction and validation. Args default value is 21 days.
@@ -240,7 +240,7 @@ class ACISThermalCheck(object):
         """
         # The -5 here has us back off from the last telemetry
         # reading just a bit
-        tbegin = DateTime(tlm['date'][-5]).date
+        tbegin = CxoTime(tlm['date'][-5]).date
         # Call the overloaded state_builder method to assemble states
         # and define a state0
         states, state0 = self.state_builder.get_prediction_states(tbegin)
@@ -356,7 +356,7 @@ class ACISThermalCheck(object):
                                   'dahtbon_history.rdb')
             mylog.info('Reading file of dahtrb commands from file %s' % htrbfn)
             htrb = ascii.read(htrbfn, format='rdb')
-            dh_heater_times = date2secs(htrb['time'])
+            dh_heater_times = CxoTime(htrb['time']).secs
             dh_heater = htrb['dahtbon'].astype(bool)
             model.comp['dh_heater'].set_data(dh_heater, dh_heater_times)
 
@@ -439,11 +439,11 @@ class ACISThermalCheck(object):
                       (times[change[0]] < load_start < times[change[1]])
             if in_load:
                 if times[change[0]] > load_start:
-                    datestart = DateTime(times[change[0]]).date
+                    datestart = CxoTime(times[change[0]]).date
                 else:
-                    datestart = DateTime(load_start).date
+                    datestart = CxoTime(load_start).date
                 viol = {'datestart': datestart,
-                        'datestop': DateTime(times[change[1] - 1]).date,
+                        'datestop': CxoTime(times[change[1] - 1]).date,
                         '%stemp' % lim_type: op(temp[change[0]:change[1]])}
                 mylog.info('WARNING: %s violates %s limit ' % (self.msid,
                                                               lim_name) +
@@ -517,7 +517,7 @@ class ACISThermalCheck(object):
         outfile = os.path.join(outdir, 'temperatures.dat')
         mylog.info('Writing temperatures to %s' % outfile)
         T = temps[self.name]
-        temp_table = Table([times, secs2date(times), T],
+        temp_table = Table([times, CxoTime(times).date, T],
                            names=['time', 'date', self.msid],
                            copy=False)
         temp_table['time'].format = '%.2f'
@@ -724,8 +724,8 @@ class ACISThermalCheck(object):
         good_mask = np.ones(len(tlm), dtype='bool')
         if hasattr(model, "bad_times"):
             for interval in model.bad_times:
-                bad = ((tlm['date'] >= DateTime(interval[0]).secs)
-                    & (tlm['date'] < DateTime(interval[1]).secs))
+                bad = ((tlm['date'] >= CxoTime(interval[0]).secs)
+                    & (tlm['date'] < CxoTime(interval[1]).secs))
                 good_mask[bad] = False
 
         # find perigee passages
@@ -1054,7 +1054,7 @@ class ACISThermalCheck(object):
         is_weekly_load : boolean
             Whether or not this is a weekly load.
         """
-        tnow = DateTime(run_start).secs
+        tnow = CxoTime(run_start).secs
         # Get tstart, tstop, commands from state builder
         if is_weekly_load:
             # If we are running a model for a particular load,
@@ -1101,9 +1101,9 @@ class ACISThermalCheck(object):
         if self.other_map is not None:
             name_map.update(self.other_map)
 
-        tstart = DateTime(tstart).secs
-        start = DateTime(tstart - days * 86400).date
-        stop = DateTime(tstart).date
+        tstart = CxoTime(tstart).secs
+        start = CxoTime(tstart - days * 86400).date
+        stop = CxoTime(tstart).date
         mylog.info('Fetching telemetry between %s and %s' % (start, stop))
         msidset = fetch.MSIDset(telem_msids, start, stop, stat='5min')
         start = max(x.times[0] for x in msidset.values())

@@ -1009,7 +1009,11 @@ class ACISThermalCheck(object):
         config_logging(args.outdir, args.verbose)
 
         # Store info relevant to processing for use in outputs
-        proc = dict(run_user=os.environ['USER'],
+        if os.name == "nt":
+            run_user = os.environ["USERNAME"]
+        else:
+            run_user = os.environ["USER"]
+        proc = dict(run_user=run_user,
                     run_time=time.ctime(),
                     errors=[],
                     msid=self.msid.upper(),

@@ -38,7 +38,7 @@ class StateBuilder(object):
         if os.path.isdir(self.backstop_file):
             # Returns a list but requires exactly 1 match
             backstop_file = get_globfiles(os.path.join(self.backstop_file,
-                                                       'CR*.backstop'))[0]
+                                                       'CR[0-9]*.backstop'))[0]
         else:
             backstop_file = self.backstop_file
         self.logger.info('Using backstop file %s' % backstop_file)

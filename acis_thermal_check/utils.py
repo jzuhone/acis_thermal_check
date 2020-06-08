@@ -373,6 +373,10 @@ def get_options(name, model_path, opts=None):
 
     args = parser.parse_args()
 
+    if os.name == "nt" and args.state_builder == "acis":
+        # ACIS state builder does not work on Windows systems
+        args.state_builder = 'sql'
+
     if args.oflsdir is not None:
         args.backstop_file = args.oflsdir
 

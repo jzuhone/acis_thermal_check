@@ -24,7 +24,8 @@ version = acis_thermal_check.__version__
 from acis_thermal_check.utils import \
     config_logging, TASK_DATA, plot_two, \
     mylog, plot_one, make_state_builder, \
-    calc_pitch_roll, thermal_blue, thermal_red
+    calc_pitch_roll, thermal_blue, thermal_red, \
+    paint_perigee
 from kadi import events
 from astropy.table import Table
 
@@ -108,6 +109,7 @@ class ACISThermalCheck(object):
         if hist_ops is None:
             hist_ops = ["greater_equal"]*len(hist_limit)
         self.hist_ops = hist_ops
+        self.perigee_passages = []
 
     def _handle_limits(self):
         from yaml import load, Loader
@@ -571,6 +573,61 @@ class ACISThermalCheck(object):
         temp_table[self.msid].format = '%.2f'
         temp_table.write(outfile, format='ascii', delimiter='\t', overwrite=True)
 
+    def _gather_perigee(self, run_start, load_start):
+        import glob
+        # The first step is to build a list of all the perigee passages.
+
+        # Gather the perigee passages that occur from the
+        # beginning of the model run up to the start of the load
+        # from kadi
+        rzs = events.rad_zones.filter(run_start, load_start)
+        for rz in rzs:
+            self.perigee_passages.append([rz.start, rz.perigee])
+        for rz in rzs:
+            self.perigee_passages.append([rz.stop, rz.perigee])
+
+        # We will get the load passages from the relevant CRM pad time file
+        # (e.g. DO12143_CRM_Pad.txt) inside the bsdir directory
+        # Each line is either an inbound or outbound ECS
+        #
+        # The reason we are doing this is because we want to draw vertical
+        # lines denoting each perigee passage on the plots
+        #
+        # Open the file
+        crm_file_path = glob.glob(self.bsdir + "/*CRM*")[0]
+        crm_file = open(crm_file_path, 'r')
+
+        alines = crm_file.readlines()
+
+        idx = None
+        # Keep reading until you hit the last header line which is all "*"'s
+        for i, aline in enumerate(alines):
+            if len(aline) > 0 and aline[0] == "*":
+                idx = i+1
+                break
+
+        if idx is None:
+            raise RuntimeError("Couldn't find the end of the CRM Pad Time file header!")
+
+        # Found the last line of the header. Start processing Perigee Passages
+
+        # While there are still lines to be read
+        for aline in alines[idx:]:
+            # create an empty Peri. Passage instance location
+            passage = []
+
+            # split the CRM Pad Time file line read in and extract the
+            # relevant information
+            splitline = aline.split()
+            passage.append(splitline[6])  # Radzone entry/exit
+            passage.append(splitline[9])  # Perigee Passage time
+
+            # append this passage to the passages list
+            self.perigee_passages.append(passage)
+
+        # Done with the CRM Pad Time file - close it
+        crm_file.close()
+
     def _make_state_plots(self, plots, num_figs, w1, plot_start,
                           states, load_start, figsize=(12, 6)):
         # Make a plot of ACIS CCDs and SIM-Z position
@@ -592,7 +649,9 @@ class ACISThermalCheck(object):
         plots['pow_sim']['ax'].lines[0].set_label('CCDs')
         plots['pow_sim']['ax'].lines[1].set_label('FEPs')
         plots['pow_sim']['ax'].legend(fancybox=True, framealpha=0.5, loc=2)
+        paint_perigee(self.perigee_passages, states, plots, "pow_sim")
         plots['pow_sim']['filename'] = 'pow_sim.png'
+        filename = 'pow_sim.png'
 
         # Make a plot of off-nominal roll
         plots['roll'] = plot_one(
@@ -605,6 +664,7 @@ class ACISThermalCheck(object):
             ylabel='Roll Angle (deg)',
             ylim=(-20.0, 20.0),
             figsize=figsize, width=w1, load_start=load_start)
+        paint_perigee(self.perigee_passages, states, plots, "roll")
         plots['roll']['filename'] = 'roll.png'
 
     def make_prediction_plots(self, outdir, states, temps, load_start):
@@ -627,6 +687,8 @@ class ACISThermalCheck(object):
         plots = {}
 
         times = self.predict_model.times
+
+        self._gather_perigee(times[0], load_start + 86400.0)
 
         # Start time of loads being reviewed expressed in units for plotdate()
         load_start = cxctime2plotdate([load_start])[0]
@@ -657,7 +719,10 @@ class ACISThermalCheck(object):
             plots[self.name]['ax'].axhline(self.plan_lo_limit, linestyle='-',
                                            color='C2', linewidth=2.0, zorder=-8)
         plots[self.name]['ax'].set_ylim(ymin, ymax)
-        plots[self.name]['filename'] = self.msid.lower() + '.png'
+        # Now plot any perigee passages that occur between xmin and xmax
+        # for eachpassage in perigee_passages:
+        paint_perigee(self.perigee_passages, states, plots, self.name)
+        plots[self.name]['filename'] = self.msid.lower()+'.png'
 
         # The next line is to ensure that the width of the axes
         # of all the weekly prediction plots are the same.

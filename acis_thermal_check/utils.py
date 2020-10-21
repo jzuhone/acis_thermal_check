@@ -499,3 +499,45 @@ def get_acis_limits(msid):
             break
 
     return yellow_lo, yellow_hi, margin
+
+#----------------------------------------------------------------------
+#
+#   paint_perigee
+#
+#----------------------------------------------------------------------
+def paint_perigee(perigee_passages, states, plots, msid):
+    """
+    This function draws vertical dahsed lines for EEF, Perigee and XEF
+    events in the load.EEF and XEF lines are black; Perigee is red.
+
+    You supply the list of perigee passage events which are:
+        Radzone Start/Stop time
+        Perigee Passage time
+
+        The states you created in main
+
+        The dictionary of plots you created
+
+        The MSID (in this case FP_TEMP) used to access the dictionary
+    """
+    #
+    # Now plot any perigee passages that occur between xmin and xmax
+    from Chandra.Time import DateTime
+    for eachpassage in perigee_passages:
+        # The index [1] item is always the Perigee Passage time. Draw that line in red
+        # If this line is between tstart and tstop then it needs to be drawn
+        # on the plot. otherwise ignore
+        if states['tstop'][-1] >= DateTime(eachpassage[0]).secs >= states['tstart'][0]:
+            # Have to convert this time into the new x axis time scale necessitated by SKA
+            xpos = cxctime2plotdate([DateTime(eachpassage[0]).secs])
+
+            ymin, ymax = plots[msid]['ax'].get_ylim()
+
+            # now plot the line.
+            plots[msid]['ax'].vlines(xpos, ymin, ymax, linestyle=':', color='red', linewidth=2.0)
+
+            # Plot the perigee passage time so long as it was specified in the CTI_report file
+            if eachpassage[1] != "Not-within-load":
+                perigee_time = cxctime2plotdate([DateTime(eachpassage[1]).secs])
+                plots[msid]['ax'].vlines(perigee_time, ymin, ymax, linestyle=':',
+                                         color='black', linewidth=2.0)

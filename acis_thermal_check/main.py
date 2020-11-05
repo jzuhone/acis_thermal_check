@@ -8,7 +8,6 @@ from pprint import pformat
 from collections import OrderedDict, defaultdict
 import re
 import time
-import pickle
 import getpass
 import numpy as np
 import Ska.DBI
@@ -24,9 +23,8 @@ from astropy.io import ascii
 version = acis_thermal_check.__version__
 from acis_thermal_check.utils import \
     config_logging, TASK_DATA, plot_two, \
-    mylog, plot_one, get_acis_limits, \
-    make_state_builder, calc_pitch_roll, \
-    thermal_blue, thermal_red
+    mylog, plot_one, make_state_builder, \
+    calc_pitch_roll, thermal_blue, thermal_red
 from kadi import events
 from astropy.table import Table
 
@@ -98,16 +96,7 @@ class ACISThermalCheck(object):
                  flag_cold_viols=False, hist_ops=None):
         self.msid = msid
         self.name = name
-        if self.msid == "fptemp":
-            self.yellow_lo = None
-            self.yellow_hi = None
-            self.margin = None
-            self.plan_limit_lo = None
-            self.plan_limit_hi = None
-        else:
-            self.yellow_lo, self.yellow_hi, self.margin = get_acis_limits(self.msid)
-            self.plan_limit_hi = self.yellow_hi-self.margin
-            self.plan_limit_lo = self.yellow_lo+self.margin
+        self._handle_limits()
         self.validation_limits = validation_limits
         self.hist_limit = hist_limit
         self.other_telem = other_telem
@@ -119,6 +108,15 @@ class ACISThermalCheck(object):
         if hist_ops is None:
             hist_ops = ["greater_equal"]*len(hist_limit)
         self.hist_ops = hist_ops
+
+    def _handle_limits(self):
+        from yaml import load, Loader
+        limits_file = os.path.join(TASK_DATA, 'acis_thermal_check', 
+                                   'data', 'limits.yml')
+        with open(limits_file, "r") as f:
+            limits = load(f, Loader=Loader)[self.msid]
+        for k, v in limits.items():
+            setattr(self, f"{k}_limit", v)
 
     def run(self, args, override_limits=None):
         """
@@ -132,7 +130,7 @@ class ACISThermalCheck(object):
             The command-line options object, which has the options
             attached to it as attributes
         override_limits : dict, optional
-            Override any margin by setting a new value to its name
+            Override any limit by setting a new value to its name
             in this dictionary. SHOULD ONLY BE USED FOR TESTING.
             This is deliberately hidden from command-line operation
             to avoid it being used accidentally.
@@ -153,7 +151,7 @@ class ACISThermalCheck(object):
                     setattr(self, k, v)
 
         if self.msid != "fptemp":
-            proc["msid_limit"] = self.plan_limit_hi
+            proc["msid_limit"] = self.plan_hi_limit
 
         # Determine the start and stop times either from whatever was
         # stored in state_builder or punt by using NOW and None for
@@ -611,16 +609,16 @@ class ACISThermalCheck(object):
                                     width=w1, load_start=load_start)
         # Add horizontal lines for the planning and caution limits
         ymin, ymax = plots[self.name]['ax'].get_ylim()
-        ymax = max(self.yellow_hi+1, ymax)
-        plots[self.name]['ax'].axhline(self.yellow_hi, linestyle='-', color='gold',
+        ymax = max(self.yellow_hi_limit+1, ymax)
+        plots[self.name]['ax'].axhline(self.yellow_hi_limit, linestyle='-', color='gold',
                                        linewidth=2.0)
-        plots[self.name]['ax'].axhline(self.plan_limit_hi, linestyle='-',
+        plots[self.name]['ax'].axhline(self.plan_hi_limit, linestyle='-', 
                                        color='C2', linewidth=2.0)
         if self.flag_cold_viols:
-            ymin = min(self.yellow_lo-1, ymin)
-            plots[self.name]['ax'].axhline(self.yellow_lo, linestyle='-', color='gold',
+            ymin = min(self.yellow_lo_limit-1, ymin)
+            plots[self.name]['ax'].axhline(self.yellow_lo_limit, linestyle='-', color='gold',
                                            linewidth=2.0, zorder=-8)
-            plots[self.name]['ax'].axhline(self.plan_limit_lo, linestyle='-',
+            plots[self.name]['ax'].axhline(self.plan_lo_limit, linestyle='-',
                                            color='C2', linewidth=2.0, zorder=-8)
         plots[self.name]['ax'].set_ylim(ymin, ymax)
         filename = self.msid.lower() + '.png'
@@ -773,26 +771,25 @@ class ACISThermalCheck(object):
             if self.msid == msid:
                 ymin, ymax = ax.get_ylim()
                 if msid == "fptemp":
-                    cold_ecs, acis_s, acis_i, acis_hot = get_acis_limits("fptemp")
-                    ax.axhline(cold_ecs, linestyle='-.', color='dodgerblue', 
+                    ax.axhline(self.cold_ecs_limit, linestyle='-.', color='dodgerblue',
                                zorder=-8, linewidth=2)
-                    ax.axhline(acis_i, linestyle='-.', color='purple', zorder=-8,
+                    ax.axhline(self.acis_i_limit, linestyle='-.', color='purple', zorder=-8,
                                linewidth=2)
-                    ax.axhline(acis_s, linestyle='-.', color='blue', zorder=-8,
+                    ax.axhline(self.acis_s_limit, linestyle='-.', color='blue', zorder=-8,
                                linewidth=2)
-                    ax.axhline(acis_hot, linestyle='-.', color='red', zorder=-8,
+                    ax.axhline(self.acis_hot_limit, linestyle='-.', color='red', zorder=-8,
                                linewidth=2)
-                    ymax = max(acis_hot+1, ymax)
+                    ymax = max(self.acis_hot_limit+1, ymax)
                 else:
-                    ax.axhline(self.yellow_hi, linestyle='-', color='gold',
+                    ax.axhline(self.yellow_hi_limit, linestyle='-', color='gold', 
                                zorder=-8, linewidth=2)
-                    ax.axhline(self.plan_limit_hi, linestyle='-', color='C2',
+                    ax.axhline(self.plan_hi_limit, linestyle='-', color='C2', 
                                zorder=-8, linewidth=2)
-                    ymax = max(self.yellow_hi+1, ymax)
+                    ymax = max(self.yellow_hi_limit+1, ymax)
                     if self.flag_cold_viols:
-                        ax.axhline(self.yellow_lo, linestyle='-', color='y')
-                        ax.axhline(self.plan_limit_lo, linestyle='--', color='y')
-                        ymin = min(self.yellow_lo-1, ymin)
+                        ax.axhline(self.yellow_lo_limit, linestyle='-', color='y')
+                        ax.axhline(self.plan_lo_limit, linestyle='--', color='y')
+                        ymin = min(self.yellow_lo_limit-1, ymin)
                 ax.set_ylim(ymin, ymax)
             ax.set_xlim(xmin, xmax)
             filename = msid + '_valid.png'
@@ -1025,7 +1022,7 @@ class ACISThermalCheck(object):
                     name=self.name.upper(),
                     hist_limit=self.hist_limit)
         if self.msid != "fptemp":
-            proc["msid_limit"] = self.yellow_hi - self.margin
+            proc["msid_limit"] = self.plan_hi_limit
         # Figure out the MD5 sum of model spec file
         md5sum = hashlib.md5(open(args.model_spec, 'rb').read()).hexdigest()
         pkg_version = ska_helpers.get_version("{}_check".format(self.name))

@@ -504,7 +504,27 @@ class ACISThermalCheck(object):
                            "type": "Min",
                            "values": lo_viols}
 
+        # Handle any additional violations one wants to check,
+        # can be overridden by a subclass
+        self.custom_prediction_viols(times, temp, viols)
+
         return viols
+
+    def custom_prediction_viols(self, times, temp, viols):
+        """
+        This method is here to allow a subclass
+        to handle its own violations.
+
+        Parameters
+        ----------
+        times : NumPy array
+            The times for the predicted temperatures
+        temp : NumPy array
+            The predicted temperatures
+        viols : dict
+            Dictionary of violations information to add to
+        """
+        pass
 
     def write_states(self, outdir, states):
         """

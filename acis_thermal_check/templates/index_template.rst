@@ -18,7 +18,7 @@ Summary
 =====================  =============================================
 Date start             {{proc.datestart}}
 Date stop              {{proc.datestop}}
-Model status           {%if viols.hi or viols.lo %}:red:`NOT OK`{% else %}OK{% endif%} (Planning Limit = {{"%.1f"|format(proc.msid_limit)}} C)
+Model status           {%if any_viols %}:red:`NOT OK`{% else %}OK{% endif%} (Planning Limit = {{"%.1f"|format(proc.msid_limit)}} C)
 {% if bsdir %}
 Load directory         {{bsdir}}
 {% endif %}
@@ -28,35 +28,23 @@ Temperatures           `<temperatures.dat>`_
 States                 `<states.dat>`_
 =====================  =============================================
 
-{% if viols.hi  %}
-{{proc.msid}} Hot Violations
+{% for key in viols.keys() %}
+
+{% if viols[key]["values"]|length > 0 %}
+{{proc.msid}} {{viols[key]["name"]}} Violations
 -----------------------------
-=====================  =====================  ==================
-Date start             Date stop              Max temperature
-=====================  =====================  ==================
-{% for viol in viols.hi %}
-{{viol.datestart}}  {{viol.datestop}}  {{"%.2f"|format(viol.maxtemp)}}
+=====================  =====================  ===================
+Date start             Date stop              {{viols[key]["type"]}} Temperature
+=====================  =====================  ===================
+{% for viol in viols[key]["values"] %}
+{{viol.datestart}}  {{viol.datestop}}  {{"%.2f"|format(viol.extemp)}}
 {% endfor %}
-=====================  =====================  ==================
+=====================  =====================  ===================
 {% else %}
-No {{proc.msid}} Hot Violations
+No {{proc.msid}} {{viols[key]["name"]}} Violations
 {% endif %}
 
-{% if flag_cold %}
-{% if viols.lo  %}
-{{proc.msid}} Cold Violations
-------------------------------
-=====================  =====================  ==================
-Date start             Date stop              Min temperature
-=====================  =====================  ==================
-{% for viol in viols.lo %}
-{{viol.datestart}}  {{viol.datestop}}  {{"%.2f"|format(viol.mintemp)}}
 {% endfor %}
-=====================  =====================  ==================
-{% else %}
-No {{proc.msid}} Cold Violations
-{% endif %}
-{% endif %}
 
 .. image:: {{plots.default.filename}}
 .. image:: {{plots.pow_sim.filename}}
@@ -109,14 +97,14 @@ No Validation Violations
 CCD/FEP Count
 -------------
 
-.. image:: {{plot.lines}}
+.. image:: {{plot.lines.filename}}
 
 {% elif plot.msid == "earthheat__fptemp" %}
 
 Earth Solid Angle
 -----------------
 
-.. image:: {{plot.lines}}
+.. image:: {{plot.lines.filename}}
 
 {% else %}
 
@@ -131,8 +119,8 @@ Note: {{proc.name}} residual histograms include only points where {{proc.msid}} 
 {% endif %}
 {% endif %}
 
-.. image:: {{plot.lines}}
-.. image:: {{plot.hist}}
+.. image:: {{plot.lines.filename}}
+.. image:: {{plot.hist.filename}}
 
 {% endif %}
 

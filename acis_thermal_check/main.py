@@ -198,6 +198,8 @@ class ACISThermalCheck(object):
             valid_viols = defaultdict(lambda: None)
             plots_validation = defaultdict(lambda: None)
 
+        any_viols = sum(len(viol["values"]) for viol in pred["viols"].values())
+
         # Write everything to the web page.
         # First, write the reStructuredText file.
 
@@ -205,11 +207,11 @@ class ACISThermalCheck(object):
         context = {'bsdir': self.bsdir,
                    'viols': pred["viols"],
                    'plots': pred["plots"],
+                   'any_viols': any_viols,
                    'valid_viols': valid_viols,
                    'proc': proc,
                    'pred_only': args.pred_only,
-                   'plots_validation': plots_validation,
-                   'flag_cold': self.flag_cold_viols}
+                   'plots_validation': plots_validation}
 
         self.write_index_rst(args.outdir, context)
 
@@ -443,9 +445,9 @@ class ACISThermalCheck(object):
             # reviewed starts.
             in_load = times[change[0]] > load_start or \
                       (times[change[0]] < load_start < times[change[1]])
-                if times[change[0]] > load_start:
+            if times[change[0]] > load_start:
                 tstart = times[change[0]]
-                else:
+            else:
                 tstart = load_start
             tstop = times[change[1] - 1]
             datestart = DateTime(tstart).date
@@ -458,7 +460,7 @@ class ACISThermalCheck(object):
                         'datestop': datestop,
                         'extemp': op(temp[change[0]:change[1]])}
                 mylog.info('WARNING: %s violates %s limit ' % (self.msid,
-                                                              lim_name) +
+                                                               lim_name) +
                            'of %.2f degC from %s to %s' % (limit,
                                                            viol['datestart'],
                                                            viol['datestop']))
@@ -485,13 +487,23 @@ class ACISThermalCheck(object):
         temp = temps[self.name]
         times = self.predict_model.times
 
-        viols = {"hi": self._make_prediction_viols(times, temp, load_start,
-                                                   self.plan_limit_hi,
-                                                   "planning", "max")}
+        hi_viols = self._make_prediction_viols(times, temp, load_start,
+                                               self.plan_hi_limit,
+                                               "planning", "max")
+        viols = {"hi":
+                     {"name": "Hot",
+                      "type": "Max",
+                      "values": hi_viols}
+                 }
+
         if self.flag_cold_viols:
-            viols["lo"] = self._make_prediction_viols(times, temp, load_start,
-                                                      self.plan_limit_lo,
-                                                      "planning", "min")
+            lo_viols = self._make_prediction_viols(times, temp, load_start,
+                                                   self.plan_lo_limit,
+                                                   "planning", "min")
+            viols["lo"] = {"name": "Cold",
+                           "type": "Min",
+                           "values": lo_viols}
+
         return viols
 
     def write_states(self, outdir, states):

@@ -25,6 +25,9 @@ Load directory         {{bsdir}}
 Run time               {{proc.run_time}} by {{proc.run_user}}
 Run log                `<run.dat>`_
 Temperatures           `<temperatures.dat>`_
+{% if proc.msid == "FPTEMP" %}
+Earth Solid Angles     `<earth_solid_angles.dat>`_
+{% endif %}
 States                 `<states.dat>`_
 =====================  =============================================
 
@@ -33,6 +36,15 @@ States                 `<states.dat>`_
 {% if viols[key]["values"]|length > 0 %}
 {{proc.msid}} {{viols[key]["name"]}} Violations
 ---------------------------------------------------
+{% if proc.msid == "FPTEMP" %}
+=====================  =====================  =================  ==================  ==================
+Date start             Date stop              Duration (ks)      Max temperature     Obsids
+=====================  =====================  =================  ==================  ==================
+{% for viol in viols[key]["values"] %}
+{{viol.datestart}}  {{viol.datestop}}  {{"{:3.2f}".format(viol.duration).rjust(8)}}            {{"%.2f"|format(viol.extemp)}}             {{viol.obsid}}
+{% endfor %}
+=====================  =====================  =================  ==================  ==================
+{% else %}
 =====================  =====================  =================  ===================
 Date start             Date stop              Duration (ks)      {{viols[key]["type"]}} Temperature
 =====================  =====================  =================  ===================
@@ -40,6 +52,7 @@ Date start             Date stop              Duration (ks)      {{viols[key]["t
 {{viol.datestart}}  {{viol.datestop}}  {{"{:3.2f}".format(viol.duration).rjust(8)}}           {{"{:.2f}".format(viol.extemp)}}
 {% endfor %}
 =====================  =====================  =================  ===================
+{% endif %}
 {% else %}
 No {{proc.msid}} {{viols[key]["name"]}} Violations
 {% endif %}
@@ -48,7 +61,11 @@ No {{proc.msid}} {{viols[key]["name"]}} Violations
 
 .. image:: {{plots.default.filename}}
 .. image:: {{plots.pow_sim.filename}}
+{% if proc.msid == "FPTEMP" %}
+.. image:: {{plots.roll_taco.filename}}
+{% else %}
 .. image:: {{plots.roll.filename}}
+{% endif %}
 
 {% endif %}
 
@@ -99,6 +116,13 @@ CCD/FEP Count
 
 .. image:: {{plot.lines.filename}}
 
+{% elif plot.msid == "earthheat__fptemp" %}
+
+Earth Solid Angle
+-----------------
+
+.. image:: {{plot.lines.filename}}
+
 {% else %}
 
 {{ plot.msid }}
@@ -118,5 +142,17 @@ Note: {{proc.name}} residual histograms include only points where {{proc.msid}} 
 {% endif %}
 
 {% endfor %}
+
+{% if proc.msid == "FPTEMP" %}
+
+ADDITIONAL PLOTS
+-----------------------
+
+Additional plots of FPTEMP vs TIME for different temperature ranges
+
+.. image:: fptempM120toM119.png
+.. image:: fptempM120toM90.png
+
+{% endif %}
 
 {% endif %}

@@ -1108,21 +1108,18 @@ class ACISThermalCheck(object):
             Dictionary of items which will be written to the ReST file.
         """
         import jinja2
-        if self.msid == "fptemp":
-            import acisfp_check
-            template_path = os.path.join(os.path.dirname(acisfp_check.__file__), 'templates')
-        else:
-            template_path = os.path.join(TASK_DATA, 'acis_thermal_check',
-                                         'templates')
+        template_path = os.path.join(TASK_DATA, 'acis_thermal_check',
+                                     'templates', 'index_template.rst')
         outfile = os.path.join(outdir, 'index.rst')
         mylog.info('Writing report file %s' % outfile)
         # Open up the reST template and send the context to it using jinja2
-        index_template = open(os.path.join(template_path,
-                                           'index_template.rst')).read()
-        index_template = re.sub(r' %}\n', ' %}', index_template)
-        template = jinja2.Template(index_template)
+        with open(template_path) as fin:
+            index_template = fin.read()
+            index_template = re.sub(r' %}\n', ' %}', index_template)
+            template = jinja2.Template(index_template)
         # Render the template and write it to a file
-        open(outfile, 'w').write(template.render(**context))
+        with open(outfile, "w") as fout:
+            fout.write(template.render(**context))
 
     def _setup_proc_and_logger(self, args):
         """

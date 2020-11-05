@@ -33,13 +33,13 @@ States                 `<states.dat>`_
 {% if viols[key]["values"]|length > 0 %}
 {{proc.msid}} {{viols[key]["name"]}} Violations
 ---------------------------------------------------
-=====================  =====================  ===================
-Date start             Date stop              {{viols[key]["type"]}} Temperature
-=====================  =====================  ===================
+=====================  =====================  =================  ===================
+Date start             Date stop              Duration (ks)      {{viols[key]["type"]}} Temperature
+=====================  =====================  =================  ===================
 {% for viol in viols[key]["values"] %}
-{{viol.datestart}}  {{viol.datestop}}  {{"%.2f"|format(viol.extemp)}}
+{{viol.datestart}}  {{viol.datestop}}  {{"{:3.2f}".format(viol.duration).rjust(8)}}           {{"{:.2f}".format(viol.extemp)}}
 {% endfor %}
-=====================  =====================  ===================
+=====================  =====================  =================  ===================
 {% else %}
 No {{proc.msid}} {{viols[key]["name"]}} Violations
 {% endif %}

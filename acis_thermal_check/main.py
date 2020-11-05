@@ -455,6 +455,7 @@ class ACISThermalCheck(object):
             if in_load and duration >= 10.0:
                 viol = {'datestart': datestart,
                         'datestop': datestop,
+                        'duration': duration*1.0e-3,
                         'extemp': op(temp[change[0]:change[1]])}
                 mylog.info('WARNING: %s violates %s limit ' % (self.msid,
                                                                lim_name) +

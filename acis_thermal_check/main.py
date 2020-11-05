@@ -185,6 +185,7 @@ class ACISThermalCheck(object):
             plots_validation = self.make_validation_plots(tlm, args.model_spec,
                                                           args.outdir,
                                                           args.run_start)
+
             proc["op"] = [op_map[op] for op in self.hist_ops]
 
             # Determine violations of temperature validation
@@ -306,6 +307,7 @@ class ACISThermalCheck(object):
         temps = {self.name: model.comp[self.msid].mvals}
         # make_prediction_plots runs the validation of the model against previous telemetry
         plots = self.make_prediction_plots(outdir, states, temps, tstart)
+
         # make_prediction_viols determines the violations and prints them out
         viols = self.make_prediction_viols(temps, tstart)
         # write_states writes the commanded states to states.dat
@@ -536,7 +538,7 @@ class ACISThermalCheck(object):
         temp_table.write(outfile, format='ascii', delimiter='\t', overwrite=True)
 
     def _make_state_plots(self, plots, num_figs, w1, plot_start,
-                          outdir, states, load_start, figsize=(12, 6)):
+                          states, load_start, figsize=(12, 6)):
         # Make a plot of ACIS CCDs and SIM-Z position
         plots['pow_sim'] = plot_two(
             fig_id=num_figs+1,
@@ -556,11 +558,7 @@ class ACISThermalCheck(object):
         plots['pow_sim']['ax'].lines[0].set_label('CCDs')
         plots['pow_sim']['ax'].lines[1].set_label('FEPs')
         plots['pow_sim']['ax'].legend(fancybox=True, framealpha=0.5, loc=2)
-        filename = 'pow_sim.png'
-        outfile = os.path.join(outdir, filename)
-        mylog.info('Writing plot file %s' % outfile)
-        plots['pow_sim']['fig'].savefig(outfile)
-        plots['pow_sim']['filename'] = filename
+        plots['pow_sim']['filename'] = 'pow_sim.png'
 
         # Make a plot of off-nominal roll
         plots['roll'] = plot_one(
@@ -573,11 +571,7 @@ class ACISThermalCheck(object):
             ylabel='Roll Angle (deg)',
             ylim=(-20.0, 20.0),
             figsize=figsize, width=w1, load_start=load_start)
-        filename = 'roll.png'
-        outfile = os.path.join(outdir, filename)
-        mylog.info('Writing plot file %s' % outfile)
-        plots['roll']['fig'].savefig(outfile)
-        plots['roll']['filename'] = filename
+        plots['roll']['filename'] = 'roll.png'
 
     def make_prediction_plots(self, outdir, states, temps, load_start):
         """
@@ -629,22 +623,38 @@ class ACISThermalCheck(object):
             plots[self.name]['ax'].axhline(self.plan_lo_limit, linestyle='-',
                                            color='C2', linewidth=2.0, zorder=-8)
         plots[self.name]['ax'].set_ylim(ymin, ymax)
-        filename = self.msid.lower() + '.png'
-        outfile = os.path.join(outdir, filename)
-        mylog.info('Writing plot file %s' % outfile)
-        plots[self.name]['fig'].savefig(outfile)
-        plots[self.name]['filename'] = filename
+        plots[self.name]['filename'] = self.msid.lower() + '.png'
 
         # The next line is to ensure that the width of the axes
         # of all the weekly prediction plots are the same.
         w1, _ = plots[self.name]['fig'].get_size_inches()
 
         self._make_state_plots(plots, 1, w1, plot_start,
-                               outdir, states, load_start)
+                               states, load_start)
 
         plots['default'] = plots[self.name]
 
+        # This call allows the specific check tool
+        # to customize plots after the fact
+        self.custom_prediction_plots(plots)
+
+        # Now write all of the plots after possible
+        # customizations have been made
+        for key in plots:
+            if key != self.msid:
+                outfile = os.path.join(outdir, plots[key]['filename'])
+                mylog.info('Writing plot file %s' % outfile)
+                plots[key]['fig'].savefig(outfile)
+
         return plots
+
+    def custom_prediction_plots(self, plots):
+        """
+        This is a stub for customizing 
+        prediction plots that can be overriden
+        by a subclass
+        """
+        pass
 
     def get_histogram_mask(self, tlm, limits):
         """
@@ -800,11 +810,9 @@ class ACISThermalCheck(object):
                         ymin = min(self.yellow_lo_limit-1, ymin)
                 ax.set_ylim(ymin, ymax)
             ax.set_xlim(xmin, xmax)
-            filename = msid + '_valid.png'
-            outfile = os.path.join(outdir, filename)
-            mylog.info('Writing plot file %s' % outfile)
-            fig.savefig(outfile)
-            plot['lines'] = filename
+            plot['lines'] = {"fig": fig,
+                             "ax": ax,
+                             "filename": msid + '_valid.png'}
 
             # Figure out histogram masks
             if msid == self.msid:
@@ -844,7 +852,9 @@ class ACISThermalCheck(object):
             outfile = os.path.join(outdir, filename)
             mylog.info('Writing plot file %s' % outfile)
             fig.savefig(outfile)
-            plot['hist'] = filename
+            plot['hist'] = {'fig': fig,
+                            "ax": ax,
+                            'filename': '%s_valid_hist.png' % msid}
 
             plots.append(plot)
 
@@ -869,13 +879,11 @@ class ACISThermalCheck(object):
                 ax.axvline(ptime, ls='--', color='C2',
                            linewidth=2, zorder=-10)
         ax.legend(fancybox=True, framealpha=0.5, loc=2)
-        filename = 'ccd_count_valid.png'
-        outfile = os.path.join(outdir, filename)
-        mylog.info('Writing plot file %s' % outfile)
-        fig.savefig(outfile)
-
         plot = {"msid": "ccd_count",
-                "lines": filename}
+                "lines": {"fig": fig,
+                          "ax": ax,
+                          "filename": 'ccd_count_valid.png'}
+                }
 
         plots.append(plot)
 
@@ -900,17 +908,30 @@ class ACISThermalCheck(object):
                 for ptime in ptimes:
                     ax.axvline(ptime, ls='--', color='C2',
                                linewidth=2, zorder=-10)
-            filename = 'earth_solid_angle_valid.png'
-            outfile = os.path.join(outdir, filename)
-            mylog.info('Writing plot file %s' % outfile)
-            fig.savefig(outfile)
 
             plot = {"msid": 'earthheat__fptemp',
-                    "lines": filename}
+                    "lines": {"fig": fig,
+                              "ax": ax,
+                              "filename": 'earth_solid_angle_valid.png'}
+                    }
 
             plots.append(plot)
 
             fig_id += 1
+
+        # This call allows the specific check tool
+        # to customize plots after the fact
+        self.custom_validation_plots(plots)
+
+        # Now write all of the plots after possible
+        # customizations have been made
+        for plot in plots:
+            for key in plot:
+                if key in ['lines', 'hist']:
+                    outfile = os.path.join(outdir,
+                                           plot[key]['filename'])
+                    mylog.info('Writing plot file %s' % outfile)
+                    plot[key]['fig'].savefig(outfile)
 
         # Write quantile tables to a CSV file
         filename = os.path.join(outdir, 'validation_quant.csv')
@@ -930,6 +951,14 @@ class ACISThermalCheck(object):
             f.close()
 
         return plots
+
+    def custom_validation_plots(self, plots):
+        """
+        This is a stub for customizing 
+        validation plots that can be overriden
+        by a subclass
+        """
+        pass
 
     def rst_to_html(self, outdir, proc):
         """Run rst2html.py to render index.rst as HTML]

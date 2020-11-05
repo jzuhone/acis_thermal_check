@@ -150,9 +150,6 @@ class ACISThermalCheck(object):
                     mylog.warning("Replacing %s %.2f with %.2f" % (k, limit, v))
                     setattr(self, k, v)
 
-        if self.msid != "fptemp":
-            proc["msid_limit"] = self.plan_hi_limit
-
         # Determine the start and stop times either from whatever was
         # stored in state_builder or punt by using NOW and None for
         # tstart and tstop.
@@ -491,7 +488,7 @@ class ACISThermalCheck(object):
                                                self.plan_hi_limit,
                                                "planning", "max")
         viols = {"hi":
-                     {"name": "Hot",
+                     {"name": f"Hot ({self.plan_hi_limit} C)",
                       "type": "Max",
                       "values": hi_viols}
                  }
@@ -500,7 +497,7 @@ class ACISThermalCheck(object):
             lo_viols = self._make_prediction_viols(times, temp, load_start,
                                                    self.plan_lo_limit,
                                                    "planning", "min")
-            viols["lo"] = {"name": "Cold",
+            viols["lo"] = {"name": f"Cold ({self.plan_lo_limit} C)",
                            "type": "Min",
                            "values": lo_viols}
 
@@ -1094,8 +1091,7 @@ class ACISThermalCheck(object):
                     msid=self.msid.upper(),
                     name=self.name.upper(),
                     hist_limit=self.hist_limit)
-        if self.msid != "fptemp":
-            proc["msid_limit"] = self.plan_hi_limit
+
         # Figure out the MD5 sum of model spec file
         md5sum = hashlib.md5(open(args.model_spec, 'rb').read()).hexdigest()
         pkg_version = ska_helpers.get_version("{}_check".format(self.name))

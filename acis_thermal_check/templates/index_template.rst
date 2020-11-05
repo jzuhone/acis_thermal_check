@@ -18,7 +18,7 @@ Summary
 =====================  =============================================
 Date start             {{proc.datestart}}
 Date stop              {{proc.datestop}}
-Model status           {%if any_viols %}:red:`NOT OK`{% else %}OK{% endif%} (Planning Limit = {{"%.1f"|format(proc.msid_limit)}} C)
+Model status           {%if any_viols %}:red:`NOT OK`{% else %}OK{% endif%}
 {% if bsdir %}
 Load directory         {{bsdir}}
 {% endif %}
@@ -32,7 +32,7 @@ States                 `<states.dat>`_
 
 {% if viols[key]["values"]|length > 0 %}
 {{proc.msid}} {{viols[key]["name"]}} Violations
------------------------------
+---------------------------------------------------
 =====================  =====================  ===================
 Date start             Date stop              {{viols[key]["type"]}} Temperature
 =====================  =====================  ===================

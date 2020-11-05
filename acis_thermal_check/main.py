@@ -881,10 +881,6 @@ class ACISThermalCheck(object):
                 ax.set_title(msid.upper() + ' residuals: data - model')
                 ax.set_xlabel(labels[msid])
             fig.subplots_adjust(bottom=0.18, left=0.15, wspace=0.6)
-            filename = '%s_valid_hist.png' % msid
-            outfile = os.path.join(outdir, filename)
-            mylog.info('Writing plot file %s' % outfile)
-            fig.savefig(outfile)
             plot['hist'] = {'fig': fig,
                             "ax": ax,
                             'filename': '%s_valid_hist.png' % msid}

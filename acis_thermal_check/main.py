@@ -418,12 +418,14 @@ class ACISThermalCheck(object):
         return viols
 
     def _make_prediction_viols(self, times, temp, load_start, limit, lim_name,
-                               lim_type):
+                               lim_type, mask=None):
+        if mask is None:
+            mask = np.ones_like(temp, dtype='bool')
         viols = []
         if lim_type == "min":
-            bad = temp <= limit
+            bad = (temp <= limit) & mask
         elif lim_type == "max":
-            bad = temp >= limit
+            bad = (temp >= limit) & mask
         op = getattr(np, lim_type)
         # The NumPy black magic of the next two lines is to figure
         # out which time periods have planning limit violations and
@@ -439,14 +441,20 @@ class ACISThermalCheck(object):
             # reviewed starts.
             in_load = times[change[0]] > load_start or \
                       (times[change[0]] < load_start < times[change[1]])
-            if in_load:
                 if times[change[0]] > load_start:
-                    datestart = DateTime(times[change[0]]).date
+                tstart = times[change[0]]
                 else:
-                    datestart = DateTime(load_start).date
+                tstart = load_start
+            tstop = times[change[1] - 1]
+            datestart = DateTime(tstart).date
+            datestop = DateTime(tstop).date
+            duration = tstop - tstart
+            # Only count the violation if it's in the load
+            # and if the duration is more than 10s
+            if in_load and duration >= 10.0:
                 viol = {'datestart': datestart,
-                        'datestop': DateTime(times[change[1] - 1]).date,
-                        '%stemp' % lim_type: op(temp[change[0]:change[1]])}
+                        'datestop': datestop,
+                        'extemp': op(temp[change[0]:change[1]])}
                 mylog.info('WARNING: %s violates %s limit ' % (self.msid,
                                                               lim_name) +
                            'of %.2f degC from %s to %s' % (limit,

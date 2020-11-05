@@ -651,7 +651,6 @@ class ACISThermalCheck(object):
         plots['pow_sim']['ax'].legend(fancybox=True, framealpha=0.5, loc=2)
         paint_perigee(self.perigee_passages, states, plots, "pow_sim")
         plots['pow_sim']['filename'] = 'pow_sim.png'
-        filename = 'pow_sim.png'
 
         # Make a plot of off-nominal roll
         plots['roll'] = plot_one(
@@ -859,7 +858,8 @@ class ACISThermalCheck(object):
         quant_head = ",".join(['MSID'] + ["quant%d" % x for x in quantiles])
         quant_table += quant_head + "\n"
         xmin, xmax = cxctime2plotdate(model.times)[[0, -1]]
-        for fig_id, msid in enumerate(pred.keys()):
+        fig_id = 0
+        for msid in pred.keys():
             plot = dict(msid=msid.upper())
             fig = plt.figure(10 + fig_id, figsize=(12, 6))
             fig.clf()
@@ -950,7 +950,7 @@ class ACISThermalCheck(object):
             plot['hist'] = {'fig': fig,
                             "ax": ax,
                             'filename': '%s_valid_hist.png' % msid}
-
+            fig_id += 1
             plots.append(plot)
 
         fig = plt.figure(10+fig_id, figsize=(12, 6))

@@ -649,7 +649,6 @@ class ACISThermalCheck(object):
         plots['pow_sim']['ax'].lines[0].set_label('CCDs')
         plots['pow_sim']['ax'].lines[1].set_label('FEPs')
         plots['pow_sim']['ax'].legend(fancybox=True, framealpha=0.5, loc=2)
-        paint_perigee(self.perigee_passages, states, plots, "pow_sim")
         plots['pow_sim']['filename'] = 'pow_sim.png'
 
         # Make a plot of off-nominal roll
@@ -663,7 +662,6 @@ class ACISThermalCheck(object):
             ylabel='Roll Angle (deg)',
             ylim=(-20.0, 20.0),
             figsize=figsize, width=w1, load_start=load_start)
-        paint_perigee(self.perigee_passages, states, plots, "roll")
         plots['roll']['filename'] = 'roll.png'
 
     def make_prediction_plots(self, outdir, states, temps, load_start):
@@ -700,27 +698,25 @@ class ACISThermalCheck(object):
         plots[self.name] = plot_two(fig_id=1, x=times, y=temps[self.name],
                                     x2=times,
                                     y2=self.predict_model.comp["pitch"].mvals,
-                                    title=self.msid.upper(), xmin=plot_start,
-                                    xlabel='Date', ylabel='Temperature (C)',
+                                    xmin=plot_start, xlabel='Date', 
+                                    ylabel='Temperature (C)',
                                     ylabel2='Pitch (deg)', ylim2=(40, 180),
                                     width=w1, load_start=load_start)
         # Add horizontal lines for the planning and caution limits
         ymin, ymax = plots[self.name]['ax'].get_ylim()
         ymax = max(self.yellow_hi_limit+1, ymax)
-        plots[self.name]['ax'].axhline(self.yellow_hi_limit, linestyle='-', color='gold',
-                                       linewidth=2.0)
-        plots[self.name]['ax'].axhline(self.plan_hi_limit, linestyle='-', 
-                                       color='C2', linewidth=2.0)
+        plots[self.name]['ax'].set_title(self.msid.upper(), loc='left', pad=10)
+        plots[self.name]['ax'].axhline(self.yellow_hi_limit, linestyle='-',
+                                       color='gold', linewidth=2.0, label='Yellow')
+        plots[self.name]['ax'].axhline(self.plan_hi_limit, linestyle='-',
+                                       color='C2', linewidth=2.0, label='Planning')
         if self.flag_cold_viols:
             ymin = min(self.yellow_lo_limit-1, ymin)
-            plots[self.name]['ax'].axhline(self.yellow_lo_limit, linestyle='-', color='gold',
-                                           linewidth=2.0, zorder=-8)
+            plots[self.name]['ax'].axhline(self.yellow_lo_limit, linestyle='-',
+                                           color='gold', linewidth=2.0, zorder=-8)
             plots[self.name]['ax'].axhline(self.plan_lo_limit, linestyle='-',
                                            color='C2', linewidth=2.0, zorder=-8)
         plots[self.name]['ax'].set_ylim(ymin, ymax)
-        # Now plot any perigee passages that occur between xmin and xmax
-        # for eachpassage in perigee_passages:
-        paint_perigee(self.perigee_passages, states, plots, self.name)
         plots[self.name]['filename'] = self.msid.lower()+'.png'
 
         # The next line is to ensure that the width of the axes
@@ -735,6 +731,18 @@ class ACISThermalCheck(object):
         # This call allows the specific check tool
         # to customize plots after the fact
         self.custom_prediction_plots(plots)
+
+        # Make the legend on the temperature plot
+        # only now after we've allowed for
+        # customizations
+        nlegend = len(plots['default']['ax'].lines)-1
+        plots['default']['ax'].legend(bbox_to_anchor=(0.15, 0.99),
+                                      loc='lower left',
+                                      ncol=nlegend, fontsize=14)
+
+        # Now plot any perigee passages that occur between xmin and xmax
+        # for eachpassage in perigee_passages:
+        paint_perigee(self.perigee_passages, states, plots)
 
         # Now write all of the plots after possible
         # customizations have been made

@@ -78,7 +78,13 @@ No {{proc.msid}} {{viols[key]["name"]}} Violations
 MSID quantiles
 ---------------
 
-Note: {{proc.name}} quantiles are calculated using only points where {{proc.msid}} > {{proc.hist_limit.0}} degC.
+{% if proc.msid == "FPTEMP" %}
+{% set quan_text = proc.hist_limit.0|join(" C <= FPTEMP <= ") + " C" %}
+{% else %}
+{% set quan_text = proc.msid + " >= " ~ proc.hist_limit.0 + " C" %}
+{% endif %}
+
+Note: Quantiles are calculated using only points where {{quan_text}}.
 
 .. csv-table:: 
    :header: "MSID", "1%", "5%", "16%", "50%", "84%", "95%", "99%"
@@ -129,11 +135,14 @@ Earth Solid Angle
 -----------------------
 
 {% if plot.msid == proc.msid %}
-{% if proc.hist_limit|length == 2 %}
-Note: {{proc.name}} residual histograms include points where {{proc.msid}} {{proc.op.0}} {{proc.hist_limit.0}} degC in blue and points where {{proc.msid}} {{proc.op.1}} {{proc.hist_limit.1}} degC in red.
+{% if proc.msid == "FPTEMP" %}
+{% set hist_string = proc.hist_limit.0|join(" C <= FPTEMP <= ") + " C" %}
+{% elif proc.hist_limit|length == 2 %}
+{% set hist_string = proc.msid + " " ~ proc.op.0 + " " ~ proc.hist_limit.0 + " C in blue and points where " ~ proc.msid + " " ~ proc.op.1 + " " ~ proc.hist_limit.1 + " C in red" %}
 {% else %}
-Note: {{proc.name}} residual histograms include only points where {{proc.msid}} {{proc.op.0}} {{proc.hist_limit.0}} degC.
+{% set hist_string = proc.msid + " " ~ proc.op.0 + " " ~ proc.hist_limit.0 + " C" %}
 {% endif %}
+Note: {{proc.msid}} residual histograms include only points where {{hist_string}}.
 {% endif %}
 
 .. image:: {{plot.lines.filename}}

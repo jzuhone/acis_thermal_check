@@ -699,7 +699,7 @@ class ACISThermalCheck(object):
                                     x2=times,
                                     y2=self.predict_model.comp["pitch"].mvals,
                                     xmin=plot_start, xlabel='Date', 
-                                    ylabel='Temperature (C)',
+                                    ylabel='Temperature ($^\circ$C)',
                                     ylabel2='Pitch (deg)', ylim2=(40, 180),
                                     width=w1, load_start=load_start)
         # Add horizontal lines for the planning and caution limits
@@ -735,10 +735,9 @@ class ACISThermalCheck(object):
         # Make the legend on the temperature plot
         # only now after we've allowed for
         # customizations
-        nlegend = len(plots['default']['ax'].lines)-1
-        plots['default']['ax'].legend(bbox_to_anchor=(0.15, 0.99),
+        plots['default']['ax'].legend(bbox_to_anchor=(0.25, 0.99),
                                       loc='lower left',
-                                      ncol=nlegend, fontsize=14)
+                                      ncol=4, fontsize=14)
 
         # Now plot any perigee passages that occur between xmin and xmax
         # for eachpassage in perigee_passages:
@@ -832,10 +831,10 @@ class ACISThermalCheck(object):
         tlm = tlm[idxs]
 
         # Set up labels for validation plots
-        labels = {self.msid: 'Degrees (C)',
-                  'pitch': 'Pitch (degrees)',
+        labels = {self.msid: 'Temperature ($^\circ$C)',
+                  'pitch': 'Pitch (deg)',
                   'tscpos': 'SIM-Z (steps/1000)',
-                  'roll': 'Off-Nominal Roll (degrees)'}
+                  'roll': 'Off-Nominal Roll (deg)'}
 
         scales = {'tscpos': 1000.}
 
@@ -872,15 +871,15 @@ class ACISThermalCheck(object):
             fig = plt.figure(10 + fig_id, figsize=(12, 6))
             fig.clf()
             scale = scales.get(msid, 1.0)
-            ticklocs, fig, ax = plot_cxctime(model.times, pred[msid] / scale,
+            ticklocs, fig, ax = plot_cxctime(model.times, pred[msid] / scale, label='Model',
                                              fig=fig, ls='-', lw=4, color=thermal_red)
-            ticklocs, fig, ax = plot_cxctime(model.times, tlm[msid] / scale,
+            ticklocs, fig, ax = plot_cxctime(model.times, tlm[msid] / scale, label='Data',
                                              fig=fig, ls='-', lw=2, color=thermal_blue)
             if np.any(~good_mask):
                 ticklocs, fig, ax = plot_cxctime(model.times[~good_mask],
                                                  tlm[msid][~good_mask] / scale,
                                                  fig=fig, fmt='.c')
-            ax.set_title(msid.upper() + ' validation; data: blue, model: red')
+            ax.set_title(msid.upper() + ' validation', loc='left', pad=10)
             ax.set_xlabel("Date")
             ax.set_ylabel(labels[msid])
             ax.grid()
@@ -896,13 +895,17 @@ class ACISThermalCheck(object):
             if self.msid == msid:
                 ymin, ymax = ax.get_ylim()
                 if msid == "fptemp":
-                    ax.axhline(self.cold_ecs_limit, linestyle='-.', color='dodgerblue',
+                    ax.axhline(self.cold_ecs_limit, linestyle='--',
+                               color='dodgerblue', label='Cold ECS',
                                zorder=-8, linewidth=2)
-                    ax.axhline(self.acis_i_limit, linestyle='-.', color='purple', zorder=-8,
+                    ax.axhline(self.acis_i_limit, linestyle='--',
+                               color='purple', zorder=-8, label='ACIS-I',
                                linewidth=2)
-                    ax.axhline(self.acis_s_limit, linestyle='-.', color='blue', zorder=-8,
+                    ax.axhline(self.acis_s_limit, linestyle='--', 
+                               color='blue', zorder=-8, label='ACIS-S',
                                linewidth=2)
-                    ax.axhline(self.acis_hot_limit, linestyle='-.', color='red', zorder=-8,
+                    ax.axhline(self.acis_hot_limit, linestyle='--', 
+                               color='red', zorder=-8, label='Hot ACIS',
                                linewidth=2)
                     ymax = max(self.acis_hot_limit+1, ymax)
                 else:
@@ -917,6 +920,7 @@ class ACISThermalCheck(object):
                         ymin = min(self.yellow_lo_limit-1, ymin)
                 ax.set_ylim(ymin, ymax)
             ax.set_xlim(xmin, xmax)
+
             plot['lines'] = {"fig": fig,
                              "ax": ax,
                              "filename": msid + '_valid.png'}
@@ -1025,6 +1029,14 @@ class ACISThermalCheck(object):
         # This call allows the specific check tool
         # to customize plots after the fact
         self.custom_validation_plots(plots)
+
+        if self.msid == "fptemp":
+            anchor = (0.295, 0.99)
+        else:
+            anchor = (0.4, 0.99)
+        plots[0]["lines"]["ax"].legend(bbox_to_anchor=anchor,
+                                       loc='lower left',
+                                       ncol=3, fontsize=14)
 
         # Now write all of the plots after possible
         # customizations have been made

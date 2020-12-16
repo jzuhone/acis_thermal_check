@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from Chandra.Time import DateTime
+from cxotime import CxoTime
 from pprint import pformat
 import kadi.commands
 import kadi.commands.states as kadi_states
@@ -49,8 +49,8 @@ class StateBuilder(object):
         datestop : string
             The end date to grab states before.
         """
-        start = DateTime(datestart)
-        stop = DateTime(datestop)
+        start = CxoTime(datestart)
+        stop = CxoTime(datestop)
         self.logger.info('Getting commanded states between %s - %s' %
                          (start.date, stop.date))
 
@@ -122,7 +122,7 @@ class SQLStateBuilder(StateBuilder):
 
         # Read the backstop commands and add a `time` column
         bs_cmds = kadi.commands.get_cmds_from_backstop(self.backstop_file)
-        bs_cmds['time'] = DateTime(bs_cmds['date']).secs
+        bs_cmds['time'] = CxoTime(bs_cmds['date']).secs
 
         self.bs_cmds = bs_cmds
         self.tstart = bs_cmds[0]['time']
@@ -150,7 +150,7 @@ class SQLStateBuilder(StateBuilder):
         # command in the backstop loads.
         ok = bs_cmds['event_type'] == 'RUNNING_LOAD_TERMINATION_TIME'
         if np.any(ok):
-            rltt = DateTime(bs_dates[ok][0])
+            rltt = CxoTime(bs_dates[ok][0])
         else:
             # Handle the case of old loads (prior to backstop 6.9) where there
             # is no RLTT.  If the first command is AOACRSTD this indicates the
@@ -159,14 +159,14 @@ class SQLStateBuilder(StateBuilder):
             # forward by 3 minutes (exactly 180.0 sec). If the first command is
             # not AOACRSTD then that command time is used as RLTT.
             if bs_cmds['tlmsid'][0] == 'AOACRSTD':
-                rltt = DateTime(bs_cmds['time'][0] + 180)
+                rltt = CxoTime(bs_cmds['time'][0] + 180)
             else:
-                rltt = DateTime(bs_cmds['date'][0])
+                rltt = CxoTime(bs_cmds['date'][0])
 
         # Scheduled stop time is the end of propagation, either the explicit
         # time as a pseudo-command in the loads or the last backstop command time.
         ok = bs_cmds['event_type'] == 'SCHEDULED_STOP_TIME'
-        sched_stop = DateTime(bs_dates[ok][0] if np.any(ok) else bs_dates[-1])
+        sched_stop = CxoTime(bs_dates[ok][0] if np.any(ok) else bs_dates[-1])
 
         self.logger.info(f'RLTT = {rltt.date}')
         self.logger.info(f'sched_stop = {sched_stop.date}')
@@ -304,7 +304,7 @@ class ACISStateBuilder(StateBuilder):
         # WHILE
         # The big while loop that backchains through previous loads and concatenates the
         # proper load sections to the review load.
-        while DateTime(tbegin).secs < bs_start_time:
+        while CxoTime(tbegin).secs < bs_start_time:
 
             # Read the Continuity information of the present ofls directory
             cont_load_path, present_load_type, scs107_date = self.BSC.get_continuity_file_info(present_ofls_dir)
@@ -407,8 +407,8 @@ class ACISStateBuilder(StateBuilder):
         # Get the first state as a dict.
         state0 = {key: states[0][key] for key in states.colnames}
 
-        self.logger.debug('state0 at %s is\n%s' % (DateTime(state0['tstart']).date,
-                                                   pformat(state0)))
+        self.logger.debug(f"state0 at {CxoTime(state0['tstart']).date} "
+                          f"is\n{pformat(state0)}")
 
         return states, state0
 

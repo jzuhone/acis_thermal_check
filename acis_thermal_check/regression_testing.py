@@ -2,7 +2,6 @@ import os
 from numpy.testing import assert_array_equal, \
     assert_allclose
 import shutil
-import numpy as np
 import tempfile
 import pickle
 from pathlib import Path

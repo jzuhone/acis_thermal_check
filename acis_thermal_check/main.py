@@ -802,6 +802,8 @@ class ACISThermalCheck(object):
         run_start : string
             The starting date/time of the run.
         """
+        import pickle
+
         start = tlm['date'][0]
         stop = tlm['date'][-1]
         states = self.state_builder.get_validation_states(start, stop)

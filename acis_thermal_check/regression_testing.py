@@ -5,6 +5,7 @@ import shutil
 import numpy as np
 import tempfile
 import pickle
+from pathlib import Path
 
 months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN",
           "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
@@ -16,6 +17,24 @@ test_loads = {"normal": ["MAR0617A", "MAR2017E", "JUL3117B", "SEP0417A"],
 all_loads = test_loads["normal"]+test_loads["interrupt"]
 
 nlets = {"MAR0617A", "MAR0817B", "SEP0417A"}
+
+
+def get_lr_root():
+    """Get root directory for ACIS load review data.
+
+    Try (in order):
+    - /data/acis/LoadReviews
+    - $SKA/data/acis/LoadReviews (for standalone installations)
+
+    :returns: str, first path from above which exists.
+    """
+    data_acis_lr = Path('data', 'acis', 'LoadReviews')
+    path = '/' / data_acis_lr
+    if not path.exists():
+        path = os.environ['SKA'] / data_acis_lr
+        if not path.exists():
+            raise FileNotFoundError('no available ACIS load review directory')
+    return str(path)
 
 
 class TestArgs(object):
@@ -70,16 +89,17 @@ class TestArgs(object):
             run_start = datetime(year, month, day).strftime("%Y:%j:%H:%M:%S")
         self.run_start = run_start
         self.outdir = outdir
+        lr_root = get_lr_root()  # Directory containing ACIS load review data
         # load_week sets the bsdir
         if load_week is None:
             self.backstop_file = None
         else:
             load_year = "20%s" % load_week[-3:-1]
             load_letter = load_week[-1].lower()
-            self.backstop_file = "/data/acis/LoadReviews/%s/%s/ofls%s" % (load_year, load_week[:-1], load_letter)
+            self.backstop_file = "%s/%s/%s/ofls%s" % (lr_root, load_year, load_week[:-1], load_letter)
         self.days = days
         if nlet_file is None:
-            nlet_file = '/data/acis/LoadReviews/NonLoadTrackedEvents.txt'
+            nlet_file = f'{lr_root}/NonLoadTrackedEvents.txt'
         self.nlet_file = nlet_file
         self.interrupt = interrupt
         self.state_builder = state_builder

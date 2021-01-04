@@ -381,10 +381,12 @@ class RegressionTester(object):
         if answer_store:
             viol_data["datestarts"] = []
             viol_data["datestops"] = []
+            viol_data["duration"] = []
             viol_data["temps"] = []
             if self.msid == "fptemp":
                 viol_data["obsids"] = []
         load_year = "20%s" % load_week[-3:-1]
+        next_year = f"{int(load_year)+1}"
         self.run_model(load_week, run_start=viol_data['run_start'], 
                        override_limits=viol_data['limits'])
         out_dir = os.path.join(self.outdir, load_week)
@@ -394,18 +396,20 @@ class RegressionTester(object):
             for line in myfile.readlines():
                 if line.startswith("Model status"):
                     assert "NOT OK" in line
-                if line.startswith(load_year):
+                if line.startswith(load_year) or line.startswith(next_year):
                     if answer_store:
                         words = line.strip().split()
                         viol_data["datestarts"].append(words[0])
                         viol_data["datestops"].append(words[1])
-                        viol_data["temps"].append(words[2])
+                        viol_data["duration"].append(words[2])
+                        viol_data["temps"].append(words[3])
                         if self.msid == "fptemp":
-                            viol_data["obsids"].append(words[3])
+                            viol_data["obsids"].append(words[4])
                     else:
                         try:
                             assert viol_data["datestarts"][i] in line
                             assert viol_data["datestops"][i] in line
+                            assert viol_data["duration"][i] in line
                             assert viol_data["temps"][i] in line
                             if self.msid == "fptemp":
                                 assert viol_data["obsids"][i] in line

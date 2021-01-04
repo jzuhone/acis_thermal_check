@@ -752,9 +752,14 @@ class ACISThermalCheck(object):
 
     def custom_prediction_plots(self, plots):
         """
-        This is a stub for customizing 
-        prediction plots that can be overriden
-        by a subclass
+        Customization of prediction plots.
+
+        Parameters
+        ----------
+        plots : dict of dicts
+            Contains the hooks to the plot figures, axes, and filenames
+            and can be used to customize plots before they are written,
+            e.g. add limit lines, etc.
         """
         pass
 
@@ -1068,9 +1073,14 @@ class ACISThermalCheck(object):
 
     def custom_validation_plots(self, plots):
         """
-        This is a stub for customizing 
-        validation plots that can be overriden
-        by a subclass
+        Customization of prediction plots.
+
+        Parameters
+        ----------
+        plots : dict of dicts
+            Contains the hooks to the plot figures, axes, and filenames
+            and can be used to customize plots before they are written,
+            e.g. add limit lines, etc.
         """
         pass
 

@@ -919,8 +919,8 @@ class ACISThermalCheck(object):
                                zorder=-8, linewidth=2, label='Planning')
                     ymax = max(self.yellow_hi_limit+1, ymax)
                     if self.flag_cold_viols:
-                        ax.axhline(self.yellow_lo_limit, linestyle='-', color='gold')
-                        ax.axhline(self.plan_lo_limit, linestyle='-', color='C2')
+                        ax.axhline(self.yellow_lo_limit, linestyle='-', color='gold', linewidth=2)
+                        ax.axhline(self.plan_lo_limit, linestyle='-', color='C2', linewidth=2)
                         ymin = min(self.yellow_lo_limit-1, ymin)
                 ax.set_ylim(ymin, ymax)
             ax.set_xlim(xmin, xmax)

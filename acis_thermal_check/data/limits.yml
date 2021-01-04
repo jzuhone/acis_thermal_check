@@ -32,5 +32,5 @@ tmp_fep1_mong:
 tmp_bep_pcb:
   plan_hi: 42.0
   yellow_hi: 44.0
-  plan_lo: 4.5
+  plan_lo: 8.5
   yellow_lo: 6.5

@@ -1,0 +1,36 @@
+1dpamzt:
+  plan_hi: 37.5
+  yellow_hi: 39.5
+  zero_feps: 12.0
+
+1deamzt:
+  plan_hi: 37.5
+  yellow_hi: 39.5
+
+1pdeaat:
+  plan_hi: 52.5
+  yellow_hi: 56.0
+  
+fptemp:
+  cold_ecs: -119.5
+  acis_s: -111.0
+  acis_i: -112.0
+  acis_hot: -109.0
+ 
+tmp_fep1_actel:
+  plan_hi: 46.0
+  yellow_hi: 48.0
+  plan_lo: 2.0
+  yellow_lo: 0.0
+
+tmp_fep1_mong:
+  plan_hi: 47.0
+  yellow_hi: 49.0
+  plan_lo: 2.0
+  yellow_lo: 0.0
+    
+tmp_bep_pcb:
+  plan_hi: 42.0
+  yellow_hi: 44.0
+  plan_lo: 8.5
+  yellow_lo: 6.5

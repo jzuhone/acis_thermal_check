@@ -18,49 +18,54 @@ Summary
 =====================  =============================================
 Date start             {{proc.datestart}}
 Date stop              {{proc.datestop}}
-Model status           {%if viols.hi or viols.lo %}:red:`NOT OK`{% else %}OK{% endif%} (Planning Limit = {{"%.1f"|format(proc.msid_limit)}} C)
+Model status           {%if any_viols %}:red:`NOT OK`{% else %}OK{% endif%}
 {% if bsdir %}
 Load directory         {{bsdir}}
 {% endif %}
 Run time               {{proc.run_time}} by {{proc.run_user}}
 Run log                `<run.dat>`_
 Temperatures           `<temperatures.dat>`_
+{% if proc.msid == "FPTEMP" %}
+Earth Solid Angles     `<earth_solid_angles.dat>`_
+{% endif %}
 States                 `<states.dat>`_
 =====================  =============================================
 
-{% if viols.hi  %}
-{{proc.msid}} Hot Violations
------------------------------
-=====================  =====================  ==================
-Date start             Date stop              Max temperature
-=====================  =====================  ==================
-{% for viol in viols.hi %}
-{{viol.datestart}}  {{viol.datestop}}  {{"%.2f"|format(viol.maxtemp)}}
+{% for key in viols.keys() %}
+
+{% if viols[key]["values"]|length > 0 %}
+{{proc.msid}} {{viols[key]["name"]}} Violations
+---------------------------------------------------
+{% if proc.msid == "FPTEMP" %}
+=====================  =====================  =================  ==================  ==================
+Date start             Date stop              Duration (ks)      Max temperature     Obsids
+=====================  =====================  =================  ==================  ==================
+{% for viol in viols[key]["values"] %}
+{{viol.datestart}}  {{viol.datestop}}  {{"{:3.2f}".format(viol.duration).rjust(8)}}            {{"%.2f"|format(viol.extemp)}}             {{viol.obsid}}
 {% endfor %}
-=====================  =====================  ==================
+=====================  =====================  =================  ==================  ==================
 {% else %}
-No {{proc.msid}} Hot Violations
+=====================  =====================  =================  ===================
+Date start             Date stop              Duration (ks)      {{viols[key]["type"]}} Temperature
+=====================  =====================  =================  ===================
+{% for viol in viols[key]["values"] %}
+{{viol.datestart}}  {{viol.datestop}}  {{"{:3.2f}".format(viol.duration).rjust(8)}}           {{"{:.2f}".format(viol.extemp)}}
+{% endfor %}
+=====================  =====================  =================  ===================
+{% endif %}
+{% else %}
+No {{proc.msid}} {{viols[key]["name"]}} Violations
 {% endif %}
 
-{% if flag_cold %}
-{% if viols.lo  %}
-{{proc.msid}} Cold Violations
-------------------------------
-=====================  =====================  ==================
-Date start             Date stop              Min temperature
-=====================  =====================  ==================
-{% for viol in viols.lo %}
-{{viol.datestart}}  {{viol.datestop}}  {{"%.2f"|format(viol.mintemp)}}
 {% endfor %}
-=====================  =====================  ==================
-{% else %}
-No {{proc.msid}} Cold Violations
-{% endif %}
-{% endif %}
 
 .. image:: {{plots.default.filename}}
 .. image:: {{plots.pow_sim.filename}}
+{% if proc.msid == "FPTEMP" %}
+.. image:: {{plots.roll_taco.filename}}
+{% else %}
 .. image:: {{plots.roll.filename}}
+{% endif %}
 
 {% endif %}
 
@@ -73,7 +78,13 @@ No {{proc.msid}} Cold Violations
 MSID quantiles
 ---------------
 
-Note: {{proc.name}} quantiles are calculated using only points where {{proc.msid}} > {{proc.hist_limit.0}} degC.
+{% if proc.msid == "FPTEMP" %}
+{% set quan_text = proc.hist_limit.0|join(" C <= FPTEMP <= ") + " C" %}
+{% else %}
+{% set quan_text = proc.msid + " >= " ~ proc.hist_limit.0 + " C" %}
+{% endif %}
+
+Note: Quantiles are calculated using only points where {{quan_text}}.
 
 .. csv-table:: 
    :header: "MSID", "1%", "5%", "16%", "50%", "84%", "95%", "99%"
@@ -109,14 +120,14 @@ No Validation Violations
 CCD/FEP Count
 -------------
 
-.. image:: {{plot.lines}}
+.. image:: {{plot.lines.filename}}
 
 {% elif plot.msid == "earthheat__fptemp" %}
 
 Earth Solid Angle
 -----------------
 
-.. image:: {{plot.lines}}
+.. image:: {{plot.lines.filename}}
 
 {% else %}
 
@@ -124,18 +135,33 @@ Earth Solid Angle
 -----------------------
 
 {% if plot.msid == proc.msid %}
-{% if proc.hist_limit|length == 2 %}
-Note: {{proc.name}} residual histograms include points where {{proc.msid}} {{proc.op.0}} {{proc.hist_limit.0}} degC in blue and points where {{proc.msid}} {{proc.op.1}} {{proc.hist_limit.1}} degC in red.
+{% if proc.msid == "FPTEMP" %}
+{% set hist_string = proc.hist_limit.0|join(" C <= FPTEMP <= ") + " C" %}
+{% elif proc.hist_limit|length == 2 %}
+{% set hist_string = proc.msid + " " ~ proc.op.0 + " " ~ proc.hist_limit.0 + " C in blue and points where " ~ proc.msid + " " ~ proc.op.1 + " " ~ proc.hist_limit.1 + " C in red" %}
 {% else %}
-Note: {{proc.name}} residual histograms include only points where {{proc.msid}} {{proc.op.0}} {{proc.hist_limit.0}} degC.
+{% set hist_string = proc.msid + " " ~ proc.op.0 + " " ~ proc.hist_limit.0 + " C" %}
 {% endif %}
+Note: {{proc.msid}} residual histograms include only points where {{hist_string}}.
 {% endif %}
 
-.. image:: {{plot.lines}}
-.. image:: {{plot.hist}}
+.. image:: {{plot.lines.filename}}
+.. image:: {{plot.hist.filename}}
 
 {% endif %}
 
 {% endfor %}
+
+{% if proc.msid == "FPTEMP" %}
+
+ADDITIONAL PLOTS
+-----------------------
+
+Additional plots of FPTEMP vs TIME for different temperature ranges
+
+.. image:: fptempM120toM119.png
+.. image:: fptempM120toM90.png
+
+{% endif %}
 
 {% endif %}

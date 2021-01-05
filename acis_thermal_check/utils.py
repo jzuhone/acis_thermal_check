@@ -503,7 +503,7 @@ def get_acis_limits(msid):
 
 def paint_perigee(perigee_passages, states, plots):
     """
-    This function draws vertical dahsed lines for EEF, Perigee and XEF
+    This function draws vertical dashed lines for EEF, Perigee and XEF
     events in the load.EEF and XEF lines are black; Perigee is red.
 
     You supply the list of perigee passage events which are:
